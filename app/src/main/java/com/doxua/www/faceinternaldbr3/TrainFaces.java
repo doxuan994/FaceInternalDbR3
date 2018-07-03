@@ -50,7 +50,6 @@ public class TrainFaces extends AppCompatActivity {
     public static final String TAG = "TrainFaces";
     public static final String EIGEN_FACES_CLASSIFIER = "eigenFacesClassifier.yml";
     public static final String FILE_NAME_PATTERN = "person.%d.%d.jpg";
-    //public static final int PHOTOS_TRAIN_QTY = 10;
     public static final int IMG_SIZE = 160;
     public static final int PICK_IMAGE = 100;
 
@@ -62,9 +61,8 @@ public class TrainFaces extends AppCompatActivity {
     private CascadeClassifier faceDetector;
     private int absoluteFaceSize = 0;
 
-    // Keep track of number of images.
-    private int photoNumber = 1;
-
+    // No duplicate photo name.
+    private int photoIdNumber = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -131,7 +129,7 @@ public class TrainFaces extends AppCompatActivity {
             // Store images with the correct format.
 
             try {
-                storeImageGrayscale(bitmap, 1, photoNumber);
+                storeImageGrayscaleExternalStorage(bitmap, 1, photoIdNumber);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -185,40 +183,6 @@ public class TrainFaces extends AppCompatActivity {
         // Count number of faces and display in text view.
         int numFaces = (int) faces.size();
         facesValue.setText(Integer.toString(numFaces));
-
-        // -----------------------------------------------------------------------------------------
-        //                                   STORE COLOR IMAGES
-        // -----------------------------------------------------------------------------------------
-        if ( numFaces > 0 ) {
-            // Multiple face detection.
-            for (int i = 0; i < numFaces; i++) {
-
-                // Display the detected face.
-                int x1 = faces.get(i).x();
-                int y1 = faces.get(i).y();
-                int w1 = faces.get(i).width();
-                int h1 = faces.get(i).height();
-
-                // Crop the detected face.
-                Rect rectCrop = new Rect(x1, y1, w1, h1);
-
-                // Convert the original image to dropped image.
-                Mat croppedImage = new Mat(colorMat, rectCrop);
-
-                // Important: Needed or images will come out blurring.
-                resize(croppedImage, croppedImage, new Size(IMG_SIZE, IMG_SIZE));
-
-                // -------------------------------------------------------------------
-                //              Convert back to bitmap for displaying
-                // -------------------------------------------------------------------
-                // Convert processed Mat back to a Frame
-                frame = converterToMat.convert(croppedImage);
-                // Copy the data to a Bitmap for display or something
-                // Bitmap processedBitmap = converterToBitmap.convert(frame);
-
-            }
-
-        }
 
         // -----------------------------------------------------------------------------------------
         //                                         DISPLAY
@@ -319,9 +283,8 @@ public class TrainFaces extends AppCompatActivity {
      * IMPORTANT.
      * @param bitmap The image.
      * @param personId
-     * @param photoNumber
      */
-    void storeImageGrayscale(Bitmap bitmap, int personId, int photoNumber) throws Exception {
+    void storeImageGrayscaleExternalStorage(Bitmap bitmap, int personId, int photoId) throws Exception {
 
         // Find the train folder.
         File myTrainDir = new File(Environment.getExternalStorageDirectory(), "saved_images");
@@ -361,10 +324,11 @@ public class TrainFaces extends AppCompatActivity {
             resize(capturedFace, capturedFace, new Size(IMG_SIZE,IMG_SIZE));
 
             // Save an image of limit of images not reach.
-            if (photoNumber <= 15) {
-                File f = new File(myTrainDir, String.format(FILE_NAME_PATTERN, personId, photoNumber));
+            if (photoIdNumber < 25) {
+                File f = new File(myTrainDir, String.format(FILE_NAME_PATTERN, personId, photoId));
                 f.createNewFile();
                 imwrite(f.getAbsolutePath(), capturedFace);
+                photoIdNumber++;
             }
         }
     }

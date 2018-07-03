@@ -40,6 +40,7 @@ import static org.opencv.core.Core.LINE_8;
 public class RegFaces extends AppCompatActivity {
 
     private static final int ACCEPT_LEVEL = 1000;
+    private static final int MIDDLE_ACCEPT_LEVEL = 2000;
     private static final int PICK_IMAGE = 100;
     private static final int IMG_SIZE = 160;
 
@@ -187,9 +188,9 @@ public class RegFaces extends AppCompatActivity {
     void recognize(Rect dadosFace, Mat greyMat, TextView tv) {
         int personId = 0;
 
-       // Find the correct root path where our trained face model is stored.
-        String personName = "Tom Cruise";
-        File photosFolder = new File(new File(Environment.getExternalStorageDirectory(), "saved_images"), "tom_cruise");
+        // Find the correct root path where our trained face model is stored.
+        String personName = "Angelina Jolie";
+        File photosFolder = new File(new File(Environment.getExternalStorageDirectory(), "saved_images"), "angelina_jolie");
         File f = new File(photosFolder, TrainFaces.EIGEN_FACES_CLASSIFIER);
 
         // Loads a persisted model and state from a given XML or YAML file.
@@ -206,51 +207,74 @@ public class RegFaces extends AppCompatActivity {
         int prediction = label.get(0);
         int acceptanceLevel = (int) reliability.get(0);
 
-
-        // Known for sure this is Tom Cruise.
-        // Assign person id 1 for displaying his information.
         if (prediction == 1 && acceptanceLevel < ACCEPT_LEVEL) {
             personId = 1;
         }
 
+
         // If a face is not found but we have its model.
-        // Read the next model to find the matching.
-        if (prediction <= -1 || acceptanceLevel >= ACCEPT_LEVEL) {
+        // Load the next model to find the matching.
+//        if (acceptanceLevel >= ACCEPT_LEVEL) {
+//            // Find the correct root path where our trained face model is stored.
+//            personName = "Tom Cruise";
+//            photosFolder = new File(new File(Environment.getExternalStorageDirectory(), "saved_images"), "tom_cruise");
+//            f = new File(photosFolder, TrainFaces.EIGEN_FACES_CLASSIFIER);
+//
+//            // Loads a persisted model and state from a given XML or YAML file.
+//            faceRecognizer.read(f.getAbsolutePath());
+//
+//            detectedFace = new Mat(greyMat, dadosFace);
+//            resize(detectedFace, detectedFace, new Size(IMG_SIZE, IMG_SIZE));
+//
+//            label = new IntPointer(1);
+//            reliability = new DoublePointer(1);
+//            faceRecognizer.predict(detectedFace, label, reliability);
+//
+//            // Display on the text view what we found.
+//            prediction = label.get(0);
+//            acceptanceLevel = (int) reliability.get(0);
+//
+//            if (prediction == 1 && acceptanceLevel < ACCEPT_LEVEL) {
+//                personId = 2;
+//            }
+//        }
 
-            personName = "Katie Holmes";
-            photosFolder = new File(new File(Environment.getExternalStorageDirectory(), "saved_images"), "katie_holmes");
-            f = new File(photosFolder, TrainFaces.EIGEN_FACES_CLASSIFIER);
 
-            // Loads a persisted model and state from a given XML or YAML file.
-            faceRecognizer.read(f.getAbsolutePath());
-
-            detectedFace = new Mat(greyMat, dadosFace);
-            resize(detectedFace, detectedFace, new Size(IMG_SIZE, IMG_SIZE));
-
-            label = new IntPointer(1);
-            reliability = new DoublePointer(1);
-            faceRecognizer.predict(detectedFace, label, reliability);
-
-            // Display on the text view what we found.
-            prediction = label.get(0);
-            acceptanceLevel = (int) reliability.get(0);
-
-            if (prediction > -1 && acceptanceLevel < ACCEPT_LEVEL) {
-                personId = 2;
-            }
-            
-        }
-
-        // Display the prediction.
-        if (prediction <= -1 || acceptanceLevel >= ACCEPT_LEVEL) {
+        // -----------------------------------------------------------------------------------------
+        //                         DISPLAY THE FACE RECOGNITION PREDICTION
+        // -----------------------------------------------------------------------------------------
+        if (prediction != 1 || acceptanceLevel > MIDDLE_ACCEPT_LEVEL)
+        {
             // Display on text view, not matching or unknown person.
             tv.setText("Unknown ");
             result_information.setText("");
-        } else {
-            // Display the information for the matching image.
-            tv.setText("A match is found " + "Hi, " + personName +  " " + acceptanceLevel + " Person ID: " + personId);
+        }
+        else if (acceptanceLevel >= ACCEPT_LEVEL && acceptanceLevel <= MIDDLE_ACCEPT_LEVEL)
+        {
+            tv.setText(
+                    "Found a match but not sure. " +
+                    "\nWarning! Acceptable Level is high! " +
+                    "\nHi, " + personName +  " " + acceptanceLevel +
+                    "\nPerson ID: " + personId +
+                    "\nPrediction Id: " + prediction
+            );
+            result_information.setText("");
+        }
+        else
+        {
+            // faceRecognizer.setLabelInfo(0, "Angelina Jolie");
+            // faceRecognizer.getDefaultName().getString();
+            // faceRecognizer.getLabelInfo(0).getString();
 
-            if (personId > 0) {
+            // Display the information for the matching image.
+            tv.setText(
+                    "A match is found " +
+                    "\nHi, " + personName +  " " + acceptanceLevel + "" +
+                    "\nPerson ID: " + personId +
+                    "\nPrediction Id: " + prediction
+            );
+
+            if (personId >= 1) {
                 DatabaseAccess databaseAccess = DatabaseAccess.getInstance(getApplicationContext());
                 databaseAccess.open();
 
@@ -259,7 +283,7 @@ public class RegFaces extends AppCompatActivity {
 
                 databaseAccess.close();
             }
-        }
+        } // End of prediction.
 
     }
 }
