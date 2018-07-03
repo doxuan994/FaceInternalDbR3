@@ -425,18 +425,5 @@ public class TrainFaces extends AppCompatActivity {
         }
         return true;
     }
-
-
-    /**
-     * Update our one model with multiple different people's faces.
-     * IMPORTANT!
-     * @return
-     * @throws Exception
-     */
-    boolean updateExternalStorageMultipleModels() throws Exception {
-
-
-        return true;
-    }
-
+    
 }
