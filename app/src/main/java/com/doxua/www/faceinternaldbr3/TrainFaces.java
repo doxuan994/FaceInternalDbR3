@@ -69,11 +69,11 @@ public class TrainFaces extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_trainfaces);
 
-        // Create the image view and text view.
+        // Create an image view and a text view.
         imageView = (ImageView) findViewById(R.id.imageView);
         textView = (TextView) findViewById(R.id.faces_value);
 
-        // Pick an image and recognize
+        // Pick an image for formatting.
         Button pickImageButton = (Button) findViewById(R.id.btnGallery);
         pickImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -89,6 +89,19 @@ public class TrainFaces extends AppCompatActivity {
             public void onClick(View v) {
                 try {
                     trainExternalStorage();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        // Train multiple button.
+        Button trainMultipleBtn = (Button) findViewById(R.id.btnTrainMultiple);
+        trainMultipleBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    trainExternalStorageMultipleModels();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -122,18 +135,14 @@ public class TrainFaces extends AppCompatActivity {
             // Display number of detected faces.
             detectAndDisplay(bitmap, textView);
 
-
             // -------------------------------------------------------------------------------------
             //                                  STORE GRAYSCALE
             // -------------------------------------------------------------------------------------
-            // Store images with the correct format.
-
             try {
-                storeImageGrayscaleExternalStorage(bitmap, 1, photoIdNumber);
+                storeImageGrayscaleExternalStorage(bitmap, 2, photoIdNumber);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
         }
     }
 
@@ -148,7 +157,6 @@ public class TrainFaces extends AppCompatActivity {
      * @param facesValue
      */
     void detectAndDisplay(Bitmap bitmap, TextView facesValue) {
-
         // Create a new gray Mat.
         Mat greyMat = new Mat();
         // JavaCV frame converters.
@@ -212,7 +220,6 @@ public class TrainFaces extends AppCompatActivity {
         } else {
             imageView.setImageBitmap(bitmap);
         }
-
     }
 
 
@@ -281,7 +288,7 @@ public class TrainFaces extends AppCompatActivity {
     /**
      * Save the grayscale format.
      * IMPORTANT.
-     * @param bitmap The image.
+     * @param bitmap The image to be stored.
      * @param personId
      */
     void storeImageGrayscaleExternalStorage(Bitmap bitmap, int personId, int photoId) throws Exception {
@@ -334,15 +341,12 @@ public class TrainFaces extends AppCompatActivity {
     }
 
     /**
-     * Train our model.
-     * IMPORTANT.
+     * Train our multiple models.
      * @return
      * @throws Exception
      */
     boolean trainExternalStorage() throws Exception {
-
         File photosFolder = new File(Environment.getExternalStorageDirectory(), "saved_images");
-
         FilenameFilter imageFilter = new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
@@ -376,7 +380,63 @@ public class TrainFaces extends AppCompatActivity {
             eigenfaces.save(f.getAbsolutePath());
         }
         return true;
+    }
 
+    /**
+     * Train our one model with multiple different people's faces.
+     * IMPORTANT!
+     * @return
+     * @throws Exception
+     */
+    boolean trainExternalStorageMultipleModels() throws Exception {
+        // Find the correct root path where our trained face model will be stored.
+        File photosFolder = new File(Environment.getExternalStorageDirectory(), "saved_images");
+        FilenameFilter imageFilter = new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(".jpg") || name.endsWith(".gif") || name.endsWith(".png");
+            }
+        };
+
+        // Create a list of photo paths.
+        File[] files = photosFolder.listFiles(imageFilter);
+
+        MatVector photos = new MatVector(files.length);
+        Mat labels = new Mat(files.length, 1, CV_32SC1);
+        IntBuffer rotulosBuffer = labels.createBuffer();
+
+        int counter = 0;
+        for (File image: files) {
+            Mat photo = imread(image.getAbsolutePath(), CV_LOAD_IMAGE_GRAYSCALE);
+            int classe = Integer.parseInt(image.getName().split("\\.")[1]);
+            resize(photo, photo, new Size(IMG_SIZE, IMG_SIZE));
+            photos.put(counter, photo);
+            rotulosBuffer.put(counter, classe);
+            counter++;
+        }
+
+        // Save our model as YAML file to the folder created on the top of the method.
+        if (files.length > 0) {
+            FaceRecognizer eigenfaces = EigenFaceRecognizer.create();
+            eigenfaces.train(photos, labels);
+            File f = new File(photosFolder, EIGEN_FACES_CLASSIFIER);
+            f.createNewFile();
+            eigenfaces.save(f.getAbsolutePath());
+        }
+        return true;
+    }
+
+
+    /**
+     * Update our one model with multiple different people's faces.
+     * IMPORTANT!
+     * @return
+     * @throws Exception
+     */
+    boolean updateExternalStorageMultipleModels() throws Exception {
+
+
+        return true;
     }
 
 }

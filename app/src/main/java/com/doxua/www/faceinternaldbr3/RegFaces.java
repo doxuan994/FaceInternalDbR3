@@ -107,7 +107,6 @@ public class RegFaces extends AppCompatActivity {
      * @param bitmap
      */
     void detectDisplayAndRecognize(Bitmap bitmap) {
-
         // Create a new gray Mat.
         Mat greyMat = new Mat();
         // JavaCV frame converters.
@@ -175,13 +174,11 @@ public class RegFaces extends AppCompatActivity {
         // -----------------------------------------------------------------------------------------
         //                                  FACE RECOGNITION
         // -----------------------------------------------------------------------------------------
-        recognize(faces.get(0), greyMat, tv);
-
+        recognizeMultipleFacesInOneModel(faces.get(0), greyMat, tv);
     }
 
     /**
-     * Predict whether the choosing image is matching or not.
-     * IMPORTANT.
+     * Predict using multiple model only but can predict multiple faces of one person only.
      * @param dadosFace
      * @param greyMat
      */
@@ -211,49 +208,20 @@ public class RegFaces extends AppCompatActivity {
             personId = 1;
         }
 
-
-        // If a face is not found but we have its model.
-        // Load the next model to find the matching.
-//        if (acceptanceLevel >= ACCEPT_LEVEL) {
-//            // Find the correct root path where our trained face model is stored.
-//            personName = "Tom Cruise";
-//            photosFolder = new File(new File(Environment.getExternalStorageDirectory(), "saved_images"), "tom_cruise");
-//            f = new File(photosFolder, TrainFaces.EIGEN_FACES_CLASSIFIER);
-//
-//            // Loads a persisted model and state from a given XML or YAML file.
-//            faceRecognizer.read(f.getAbsolutePath());
-//
-//            detectedFace = new Mat(greyMat, dadosFace);
-//            resize(detectedFace, detectedFace, new Size(IMG_SIZE, IMG_SIZE));
-//
-//            label = new IntPointer(1);
-//            reliability = new DoublePointer(1);
-//            faceRecognizer.predict(detectedFace, label, reliability);
-//
-//            // Display on the text view what we found.
-//            prediction = label.get(0);
-//            acceptanceLevel = (int) reliability.get(0);
-//
-//            if (prediction == 1 && acceptanceLevel < ACCEPT_LEVEL) {
-//                personId = 2;
-//            }
-//        }
-
-
         // -----------------------------------------------------------------------------------------
         //                         DISPLAY THE FACE RECOGNITION PREDICTION
         // -----------------------------------------------------------------------------------------
         if (prediction != 1 || acceptanceLevel > MIDDLE_ACCEPT_LEVEL)
         {
             // Display on text view, not matching or unknown person.
-            tv.setText("Unknown ");
+            tv.setText("Unknown");
             result_information.setText("");
         }
         else if (acceptanceLevel >= ACCEPT_LEVEL && acceptanceLevel <= MIDDLE_ACCEPT_LEVEL)
         {
             tv.setText(
-                    "Found a match but not sure. " +
-                    "\nWarning! Acceptable Level is high! " +
+                    "Found a match but not sure." +
+                    "\nWarning! Acceptable Level is high!" +
                     "\nHi, " + personName +  " " + acceptanceLevel +
                     "\nPerson ID: " + personId +
                     "\nPrediction Id: " + prediction
@@ -262,14 +230,10 @@ public class RegFaces extends AppCompatActivity {
         }
         else
         {
-            // faceRecognizer.setLabelInfo(0, "Angelina Jolie");
-            // faceRecognizer.getDefaultName().getString();
-            // faceRecognizer.getLabelInfo(0).getString();
-
             // Display the information for the matching image.
             tv.setText(
-                    "A match is found " +
-                    "\nHi, " + personName +  " " + acceptanceLevel + "" +
+                    "A match is found." +
+                    "\nHi, " + personName +  " " + acceptanceLevel +
                     "\nPerson ID: " + personId +
                     "\nPrediction Id: " + prediction
             );
@@ -283,7 +247,90 @@ public class RegFaces extends AppCompatActivity {
 
                 databaseAccess.close();
             }
-        } // End of prediction.
-
+        }
     }
+
+    /**
+     * Predict using one model only but can predict multiple faces of different people.
+     * IMPORTANT!
+     * @param dadosFace
+     * @param greyMat
+     */
+    void recognizeMultipleFacesInOneModel(Rect dadosFace, Mat greyMat, TextView tv) {
+        int personId = 0;
+        String personName = "";
+
+        // Find the correct root path where our trained face model is stored.
+        File photosFolder = new File(Environment.getExternalStorageDirectory(), "saved_images");
+        File f = new File(photosFolder, TrainFaces.EIGEN_FACES_CLASSIFIER);
+
+        // Loads a persisted model and state from a given XML or YAML file.
+        faceRecognizer.read(f.getAbsolutePath());
+
+        Mat detectedFace = new Mat(greyMat, dadosFace);
+        resize(detectedFace, detectedFace, new Size(IMG_SIZE, IMG_SIZE));
+
+        IntPointer label = new IntPointer(1);
+        DoublePointer reliability = new DoublePointer(1);
+        faceRecognizer.predict(detectedFace, label, reliability);
+
+        // Display on the text view what we found.
+        int prediction = label.get(0);
+        int acceptanceLevel = (int) reliability.get(0);
+
+        if (prediction == 0) {
+            personName = "Angelina Jolie";
+            personId = 1;
+        }
+
+        if (prediction == 1) {
+            personName = "Tom Cruise";
+            personId = 2;
+        }
+
+        // prediction = 1 Angelina Jolie
+        // prediction = 2 Tom Cruise
+
+        // -----------------------------------------------------------------------------------------
+        //                         DISPLAY THE FACE RECOGNITION PREDICTION
+        // -----------------------------------------------------------------------------------------
+        if ((prediction != 0 && prediction != 1) || acceptanceLevel > MIDDLE_ACCEPT_LEVEL)
+        {
+            // Display on text view, not matching or unknown person.
+            tv.setText("Unknown");
+            result_information.setText("");
+        }
+        else if (acceptanceLevel >= ACCEPT_LEVEL && acceptanceLevel <= MIDDLE_ACCEPT_LEVEL)
+        {
+            tv.setText(
+                    "Found a match but not sure." +
+                            "\nWarning! Acceptable Level is high!" +
+                            "\nHi, " + personName +  " " + acceptanceLevel +
+                            "\nPerson ID: " + personId +
+                            "\nPrediction Id: " + prediction
+            );
+            result_information.setText("");
+        }
+        else
+        {
+            // Display the information for the matching image.
+            tv.setText(
+                    "A match is found." +
+                            "\nHi, " + personName +  " " + acceptanceLevel +
+                            "\nPerson ID: " + personId +
+                            "\nPrediction Id: " + prediction
+            );
+
+            if (personId >= 1) {
+                DatabaseAccess databaseAccess = DatabaseAccess.getInstance(getApplicationContext());
+                databaseAccess.open();
+
+                String info = databaseAccess.getInformation(personId);
+                result_information.setText(info);
+
+                databaseAccess.close();
+            }
+        }
+    }
+
 }
