@@ -14,6 +14,8 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.bytedeco.javacpp.RealSense;
+import org.bytedeco.javacpp.opencv_core;
 import org.bytedeco.javacv.AndroidFrameConverter;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.OpenCVFrameConverter;
@@ -243,17 +245,13 @@ public class TrainFaces extends AppCompatActivity {
      * @param personId
      */
     void storeImageGrayscaleInternalStorage(Bitmap bitmap, int personId, int photoId) throws Exception {
-
         // Create a new folder internal for our train images.
-        // File internalFolder = new File(context.getFilesDir(), TRAIN_FOLDER);
-
-        // Create a new folder internal for our train images.
-        File myTrainDir = new File(Environment.getExternalStorageDirectory(), INTERNAL_TRAIN_FOLDER);
-        if (myTrainDir.exists() && !myTrainDir.isDirectory()) {
-            myTrainDir.delete();
+        File internalFolder = new File(getFilesDir(), INTERNAL_TRAIN_FOLDER);
+        if (internalFolder.exists() && !internalFolder.isDirectory()) {
+            internalFolder.delete();
         }
-        if (!myTrainDir.exists()) {
-            myTrainDir.mkdirs();
+        if (!internalFolder.exists()) {
+            internalFolder.mkdirs();
         }
 
         // Create a new gray Mat.
@@ -292,7 +290,7 @@ public class TrainFaces extends AppCompatActivity {
 
             // Save an image only if a limitation of the image does not reach.
             if (photoIdNumber < PHOTOS_TRAIN_QTY) {
-                File f = new File(myTrainDir, String.format(FILE_NAME_PATTERN, personId, photoId));
+                File f = new File(internalFolder, String.format(FILE_NAME_PATTERN, personId, photoId));
                 f.createNewFile();
                 imwrite(f.getAbsolutePath(), capturedFace);
                 photoIdNumber++;
@@ -313,7 +311,7 @@ public class TrainFaces extends AppCompatActivity {
      */
     boolean trainInternalStorageMultipleModels() throws Exception {
         // Find the correct root path where our trained face model will be stored.
-        File photosFolder = new File(Environment.getExternalStorageDirectory(), INTERNAL_TRAIN_FOLDER);
+        File internalPhotosFolder = new File(getFilesDir(), INTERNAL_TRAIN_FOLDER);
         FilenameFilter imageFilter = new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
@@ -322,7 +320,7 @@ public class TrainFaces extends AppCompatActivity {
         };
 
         // Create a list of photo paths.
-        File[] files = photosFolder.listFiles(imageFilter);
+        File[] files = internalPhotosFolder.listFiles(imageFilter);
 
         MatVector photos = new MatVector(files.length);
         Mat labels = new Mat(files.length, 1, CV_32SC1);
@@ -342,12 +340,15 @@ public class TrainFaces extends AppCompatActivity {
         if (files.length > 0) {
             FaceRecognizer eigenfaces = EigenFaceRecognizer.create();
             eigenfaces.train(photos, labels);
-            File f = new File(photosFolder, EIGEN_FACES_CLASSIFIER);
+            File f = new File(internalPhotosFolder, EIGEN_FACES_CLASSIFIER);
             f.createNewFile();
             eigenfaces.save(f.getAbsolutePath());
         }
         return true;
     }
+
+
+
 
     /***********************************************************************************************
      *

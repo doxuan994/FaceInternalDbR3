@@ -117,9 +117,9 @@ public class RegFaces extends AppCompatActivity {
         AndroidFrameConverter converterToBitmap = new AndroidFrameConverter();
         OpenCVFrameConverter.ToMat converterToMat = new OpenCVFrameConverter.ToMat();
 
-        // -------------------------------------------------------------------
-        //                    Convert to mat for processing
-        // -------------------------------------------------------------------
+        // -----------------------------------------------------------------------------------------
+        //                              Convert to mat for processing
+        // -----------------------------------------------------------------------------------------
         // Convert to Bitmap.
         Frame frame = converterToBitmap.convert(bitmap);
         // Convert to Mat.
@@ -157,9 +157,9 @@ public class RegFaces extends AppCompatActivity {
 
                 rectangle(colorMat, new Point(x, y), new Point(x + w, y + h), Scalar.GREEN, 2, LINE_8, 0);
 
-                // -------------------------------------------------------------------
-                //              Convert back to bitmap for displaying
-                // -------------------------------------------------------------------
+                // ---------------------------------------------------------------------------------
+                //                      Convert back to bitmap for displaying
+                // ---------------------------------------------------------------------------------
                 // Convert processed Mat back to a Frame
                 frame = converterToMat.convert(colorMat);
                 // Copy the data to a Bitmap for display or something
@@ -175,8 +175,108 @@ public class RegFaces extends AppCompatActivity {
         // -----------------------------------------------------------------------------------------
         //                                  FACE RECOGNITION
         // -----------------------------------------------------------------------------------------
-        recognizeMultiple(faces.get(0), greyMat, tv);
+        recognizeMultipleInternalStorage(faces.get(0), greyMat, tv);
     }
+
+    /***********************************************************************************************
+     *
+     *
+     *                                  INTERNAL STORAGE
+     *
+     *
+     **********************************************************************************************/
+    /**
+     * Predict using one model only but can predict faces of different people.
+     * Recognize multiple faces using only one model.
+     * prediction = 0 Angelina Jolie
+     * prediction = 1 Tom Cruise
+     * IMPORTANT!
+     * @param dadosFace
+     * @param greyMat
+     */
+    void recognizeMultipleInternalStorage(Rect dadosFace, Mat greyMat, TextView tv) {
+        int personId = 0;
+        String personName = "";
+
+        // Find the correct root path where our trained face model is stored.
+        File internalPhotosFolder = new File(getFilesDir(), INTERNAL_TRAIN_FOLDER);
+        File f = new File(internalPhotosFolder, TrainFaces.EIGEN_FACES_CLASSIFIER);
+
+        // Loads a persisted model and state from a given XML or YAML file.
+        faceRecognizer.read(f.getAbsolutePath());
+
+        Mat detectedFace = new Mat(greyMat, dadosFace);
+        resize(detectedFace, detectedFace, new Size(IMG_SIZE, IMG_SIZE));
+
+        IntPointer label = new IntPointer(1);
+        DoublePointer reliability = new DoublePointer(1);
+        faceRecognizer.predict(detectedFace, label, reliability);
+
+        // Display on the text view what we found.
+        int prediction = label.get(0);
+        int acceptanceLevel = (int) reliability.get(0);
+
+        if (prediction == 0) {
+            personName = "Angelina Jolie";
+            personId = 1;
+        }
+
+        if (prediction == 1) {
+            personName = "Tom Cruise";
+            personId = 2;
+        }
+
+        // -----------------------------------------------------------------------------------------
+        //                         DISPLAY THE FACE RECOGNITION PREDICTION
+        // -----------------------------------------------------------------------------------------
+        if ((prediction != 0 && prediction != 1) || acceptanceLevel > MIDDLE_ACCEPT_LEVEL)
+        {
+            // Display on text view, not matching or unknown person.
+            tv.setText("Unknown");
+            result_information.setText("");
+        }
+        else if (acceptanceLevel >= ACCEPT_LEVEL && acceptanceLevel <= MIDDLE_ACCEPT_LEVEL)
+        {
+            tv.setText(
+                    "Found a match but not sure." +
+                            "\nWarning! Acceptable Level is high!" +
+                            "\nHi, " + personName +  " " + acceptanceLevel +
+                            "\nPerson ID: " + personId +
+                            "\nPrediction Id: " + prediction
+            );
+            result_information.setText("");
+        }
+        else
+        {
+            // Display the information for the matching image.
+            tv.setText(
+                    "A match is found." +
+                            "\nHi, " + personName +  " " + acceptanceLevel +
+                            "\nPerson ID: " + personId +
+                            "\nPrediction Id: " + prediction
+            );
+
+            if (personId >= 1) {
+                DatabaseAccess databaseAccess = DatabaseAccess.getInstance(getApplicationContext());
+                databaseAccess.open();
+
+                String info = databaseAccess.getInformation(personId);
+                result_information.setText(info);
+
+                databaseAccess.close();
+            }
+        }
+    }
+
+
+    /***********************************************************************************************
+     *
+     *
+     *                                       EXTERNAL STORAGE
+     *
+     *
+     **********************************************************************************************/
+
 
     /**
      * Predict using one model only but can predict faces of different people.
@@ -187,7 +287,7 @@ public class RegFaces extends AppCompatActivity {
      * @param dadosFace
      * @param greyMat
      */
-    void recognizeMultiple(Rect dadosFace, Mat greyMat, TextView tv) {
+    void recognizeMultipleExternalStorage(Rect dadosFace, Mat greyMat, TextView tv) {
         int personId = 0;
         String personName = "";
 
