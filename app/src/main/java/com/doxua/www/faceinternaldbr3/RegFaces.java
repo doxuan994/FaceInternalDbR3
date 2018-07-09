@@ -38,7 +38,8 @@ import static org.opencv.core.Core.LINE_8;
 
 
 public class RegFaces extends AppCompatActivity {
-
+    public static final String TAG = "RegFaces";
+    public static final String INTERNAL_TRAIN_FOLDER = "train_folder";
     private static final int ACCEPT_LEVEL = 1000;
     private static final int MIDDLE_ACCEPT_LEVEL = 2000;
     private static final int PICK_IMAGE = 100;
@@ -55,6 +56,9 @@ public class RegFaces extends AppCompatActivity {
 
     // Face Recognition.
     private FaceRecognizer faceRecognizer = EigenFaceRecognizer.create();
+
+    // External storage.
+    public static final String EXTERNAL_TRAIN_FOLDER = "saved_images";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -121,12 +125,10 @@ public class RegFaces extends AppCompatActivity {
         // Convert to Mat.
         Mat colorMat = converterToMat.convert(frame);
 
-
         // Convert to Gray scale.
         cvtColor(colorMat, greyMat, CV_BGR2GRAY);
         // Vector of rectangles where each rectangle contains the detected object.
         RectVector faces = new RectVector();
-
 
         // -----------------------------------------------------------------------------------------
         //                                  FACE DETECTION
@@ -138,12 +140,11 @@ public class RegFaces extends AppCompatActivity {
                 new Size(absoluteFaceSize, absoluteFaceSize),
                 new Size(4 * absoluteFaceSize, 4 * absoluteFaceSize));
 
-
-        // Count number of faces and display in text view.
+        // Count number of faces.
         int numFaces = (int) faces.size();
 
         // -----------------------------------------------------------------------------------------
-        //                                      DISPLAY
+        //                                       DISPLAY
         // -----------------------------------------------------------------------------------------
         if ( numFaces > 0 ) {
             // Multiple face detection.
@@ -174,94 +175,24 @@ public class RegFaces extends AppCompatActivity {
         // -----------------------------------------------------------------------------------------
         //                                  FACE RECOGNITION
         // -----------------------------------------------------------------------------------------
-        recognizeMultipleFacesInOneModel(faces.get(0), greyMat, tv);
+        recognizeMultiple(faces.get(0), greyMat, tv);
     }
 
     /**
-     * Predict using multiple model only but can predict multiple faces of one person only.
-     * @param dadosFace
-     * @param greyMat
-     */
-    void recognize(Rect dadosFace, Mat greyMat, TextView tv) {
-        int personId = 0;
-
-        // Find the correct root path where our trained face model is stored.
-        String personName = "Angelina Jolie";
-        File photosFolder = new File(new File(Environment.getExternalStorageDirectory(), "saved_images"), "angelina_jolie");
-        File f = new File(photosFolder, TrainFaces.EIGEN_FACES_CLASSIFIER);
-
-        // Loads a persisted model and state from a given XML or YAML file.
-        faceRecognizer.read(f.getAbsolutePath());
-
-        Mat detectedFace = new Mat(greyMat, dadosFace);
-        resize(detectedFace, detectedFace, new Size(IMG_SIZE, IMG_SIZE));
-
-        IntPointer label = new IntPointer(1);
-        DoublePointer reliability = new DoublePointer(1);
-        faceRecognizer.predict(detectedFace, label, reliability);
-
-        // Display on the text view what we found.
-        int prediction = label.get(0);
-        int acceptanceLevel = (int) reliability.get(0);
-
-        if (prediction == 1 && acceptanceLevel < ACCEPT_LEVEL) {
-            personId = 1;
-        }
-
-        // -----------------------------------------------------------------------------------------
-        //                         DISPLAY THE FACE RECOGNITION PREDICTION
-        // -----------------------------------------------------------------------------------------
-        if (prediction != 1 || acceptanceLevel > MIDDLE_ACCEPT_LEVEL)
-        {
-            // Display on text view, not matching or unknown person.
-            tv.setText("Unknown");
-            result_information.setText("");
-        }
-        else if (acceptanceLevel >= ACCEPT_LEVEL && acceptanceLevel <= MIDDLE_ACCEPT_LEVEL)
-        {
-            tv.setText(
-                    "Found a match but not sure." +
-                    "\nWarning! Acceptable Level is high!" +
-                    "\nHi, " + personName +  " " + acceptanceLevel +
-                    "\nPerson ID: " + personId +
-                    "\nPrediction Id: " + prediction
-            );
-            result_information.setText("");
-        }
-        else
-        {
-            // Display the information for the matching image.
-            tv.setText(
-                    "A match is found." +
-                    "\nHi, " + personName +  " " + acceptanceLevel +
-                    "\nPerson ID: " + personId +
-                    "\nPrediction Id: " + prediction
-            );
-
-            if (personId >= 1) {
-                DatabaseAccess databaseAccess = DatabaseAccess.getInstance(getApplicationContext());
-                databaseAccess.open();
-
-                String info = databaseAccess.getInformation(personId);
-                result_information.setText(info);
-
-                databaseAccess.close();
-            }
-        }
-    }
-
-    /**
-     * Predict using one model only but can predict multiple faces of different people.
+     * Predict using one model only but can predict faces of different people.
+     * Recognize multiple faces using only one model.
+     * prediction = 0 Angelina Jolie
+     * prediction = 1 Tom Cruise
      * IMPORTANT!
      * @param dadosFace
      * @param greyMat
      */
-    void recognizeMultipleFacesInOneModel(Rect dadosFace, Mat greyMat, TextView tv) {
+    void recognizeMultiple(Rect dadosFace, Mat greyMat, TextView tv) {
         int personId = 0;
         String personName = "";
 
         // Find the correct root path where our trained face model is stored.
-        File photosFolder = new File(Environment.getExternalStorageDirectory(), "saved_images");
+        File photosFolder = new File(Environment.getExternalStorageDirectory(), INTERNAL_TRAIN_FOLDER);
         File f = new File(photosFolder, TrainFaces.EIGEN_FACES_CLASSIFIER);
 
         // Loads a persisted model and state from a given XML or YAML file.
@@ -287,9 +218,6 @@ public class RegFaces extends AppCompatActivity {
             personName = "Tom Cruise";
             personId = 2;
         }
-
-        // prediction = 1 Angelina Jolie
-        // prediction = 2 Tom Cruise
 
         // -----------------------------------------------------------------------------------------
         //                         DISPLAY THE FACE RECOGNITION PREDICTION
@@ -332,5 +260,4 @@ public class RegFaces extends AppCompatActivity {
             }
         }
     }
-
 }
