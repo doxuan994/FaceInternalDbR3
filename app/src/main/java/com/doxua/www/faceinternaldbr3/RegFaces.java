@@ -39,7 +39,6 @@ import static org.opencv.core.Core.LINE_8;
 
 public class RegFaces extends AppCompatActivity {
     public static final String TAG = "RegFaces";
-    public static final String INTERNAL_TRAIN_FOLDER = "train_folder";
     private static final int ACCEPT_LEVEL = 1000;
     private static final int MIDDLE_ACCEPT_LEVEL = 2000;
     private static final int PICK_IMAGE = 100;
@@ -59,6 +58,9 @@ public class RegFaces extends AppCompatActivity {
 
     // External storage.
     public static final String EXTERNAL_TRAIN_FOLDER = "saved_images";
+
+    // Internal storage.
+    public static final String INTERNAL_TRAIN_FOLDER = "train_folder";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -175,7 +177,7 @@ public class RegFaces extends AppCompatActivity {
         // -----------------------------------------------------------------------------------------
         //                                  FACE RECOGNITION
         // -----------------------------------------------------------------------------------------
-        recognizeMultipleInternalStorage(faces.get(0), greyMat, tv);
+        recognizeMultipleExternalStorage(faces.get(0), greyMat, tv);
     }
 
     /***********************************************************************************************
@@ -292,7 +294,7 @@ public class RegFaces extends AppCompatActivity {
         String personName = "";
 
         // Find the correct root path where our trained face model is stored.
-        File photosFolder = new File(Environment.getExternalStorageDirectory(), INTERNAL_TRAIN_FOLDER);
+        File photosFolder = new File(Environment.getExternalStorageDirectory(), EXTERNAL_TRAIN_FOLDER);
         File f = new File(photosFolder, TrainFaces.EIGEN_FACES_CLASSIFIER);
 
         // Loads a persisted model and state from a given XML or YAML file.

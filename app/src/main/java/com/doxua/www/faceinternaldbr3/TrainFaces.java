@@ -14,8 +14,6 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import org.bytedeco.javacpp.RealSense;
-import org.bytedeco.javacpp.opencv_core;
 import org.bytedeco.javacv.AndroidFrameConverter;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.OpenCVFrameConverter;
@@ -50,7 +48,6 @@ import static org.opencv.core.Core.LINE_8;
 public class TrainFaces extends AppCompatActivity {
     public static final String TAG = "TrainFaces";
     public static final String EIGEN_FACES_CLASSIFIER = "eigenFacesClassifier.yml";
-    public static final String INTERNAL_TRAIN_FOLDER = "train_folder";
     public static final String FILE_NAME_PATTERN = "person.%d.%d.jpg";
     public static final int IMG_SIZE = 160;
     public static final int PICK_IMAGE = 100;
@@ -71,6 +68,9 @@ public class TrainFaces extends AppCompatActivity {
 
     // External storage.
     public static final String EXTERNAL_TRAIN_FOLDER = "saved_images";
+
+    // Internal storage.
+    public static final String INTERNAL_TRAIN_FOLDER = "train_folder";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -147,7 +147,7 @@ public class TrainFaces extends AppCompatActivity {
             //                                 STORE GRAYSCALE
             // -------------------------------------------------------------------------------------
             try {
-                storeImageGrayscaleInternalStorage(bitmap, personIdNumber, photoIdNumber);
+                storeImageGrayscaleExternalStorage(bitmap, personIdNumber, photoIdNumber);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -240,7 +240,6 @@ public class TrainFaces extends AppCompatActivity {
     /**
      * Save the grayscale format.
      * Theoretically, this method saves images internally but right now let doing a test with external storage.
-     * IMPORTANT!
      * @param bitmap The image to be stored.
      * @param personId
      */
@@ -305,7 +304,6 @@ public class TrainFaces extends AppCompatActivity {
 
     /**
      * Train our one model with multiple different people faces internal but right now still external for testing purpose.
-     * IMPORTANT!
      * @return
      * @throws Exception
      */
@@ -347,9 +345,6 @@ public class TrainFaces extends AppCompatActivity {
         return true;
     }
 
-
-
-
     /***********************************************************************************************
      *
      *
@@ -359,7 +354,6 @@ public class TrainFaces extends AppCompatActivity {
      **********************************************************************************************/
     /**
      * Save the grayscale format.
-     * IMPORTANT.
      * @param bitmap The image to be stored.
      * @param personId
      */
@@ -424,7 +418,6 @@ public class TrainFaces extends AppCompatActivity {
 
     /**
      * Train our one model with multiple different people faces.
-     * IMPORTANT!
      * @return
      * @throws Exception
      */
