@@ -71,7 +71,7 @@ public class TrainFaces extends AppCompatActivity {
     //     Restriction may be applied to use this faculty model for Face Detection.
     //----------------------------------------------------------------------------------------------
     // public static final String EXTERNAL_TRAIN_FOLDER = "train_faculty_folder";
-    public static final String EXTERNAL_TRAIN_FOLDER = "train_students_folder";
+    public static final String EXTERNAL_TRAIN_FOLDER = "my_train_folder";
 
     // Internal storage.
     public static final String INTERNAL_TRAIN_FOLDER = "train_folder";

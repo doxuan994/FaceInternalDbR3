@@ -39,8 +39,8 @@ import static org.opencv.core.Core.LINE_8;
 
 public class RegFaces extends AppCompatActivity {
     public static final String TAG = "RegFaces";
-    private static final int ACCEPT_LEVEL = 1000;
-    private static final int MIDDLE_ACCEPT_LEVEL = 2000;
+    private static final int ACCEPT_LEVEL = 4000;
+    private static final int MIDDLE_ACCEPT_LEVEL = 5000;
     private static final int PICK_IMAGE = 100;
     private static final int IMG_SIZE = 160;
 
@@ -61,7 +61,7 @@ public class RegFaces extends AppCompatActivity {
     //     Restriction may be applied to use this faculty model for Face Recognition.
     //----------------------------------------------------------------------------------------------
     // public static final String EXTERNAL_TRAIN_FOLDER = "train_faculty_folder";
-    public static final String EXTERNAL_TRAIN_FOLDER = "train_students_folder";
+    public static final String EXTERNAL_TRAIN_FOLDER = "my_train_folder";
 
     // Internal storage.
     public static final String INTERNAL_TRAIN_FOLDER = "train_folder";
@@ -197,6 +197,7 @@ public class RegFaces extends AppCompatActivity {
      * Recognize multiple faces using only one model.
      * prediction = 0
      * prediction = 1
+     * prediction = 2
      * IMPORTANT!
      * @param dadosFace
      * @param greyMat
@@ -223,15 +224,18 @@ public class RegFaces extends AppCompatActivity {
         int prediction = label.get(0);
         int acceptanceLevel = (int) reliability.get(0);
 
+
+
         if (prediction == 0) {
-            personName = "Person 1";
+            personName = "Gabriella Mayorga";
             personId = 1;
         }
 
         if (prediction == 1) {
-            personName = "Person 2";
+            personName = "Xuan Do";
             personId = 2;
         }
+
 
 
         // -----------------------------------------------------------------------------------------
