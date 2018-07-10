@@ -57,7 +57,11 @@ public class RegFaces extends AppCompatActivity {
     private FaceRecognizer faceRecognizer = EigenFaceRecognizer.create();
 
     // External storage.
-    public static final String EXTERNAL_TRAIN_FOLDER = "saved_images";
+    //----------------------------------------------------------------------------------------------
+    //     Restriction may be applied to use this faculty model for Face Recognition.
+    //----------------------------------------------------------------------------------------------
+    // public static final String EXTERNAL_TRAIN_FOLDER = "train_faculty_folder";
+    public static final String EXTERNAL_TRAIN_FOLDER = "train_students_folder";
 
     // Internal storage.
     public static final String INTERNAL_TRAIN_FOLDER = "train_folder";
@@ -136,7 +140,7 @@ public class RegFaces extends AppCompatActivity {
         //                                  FACE DETECTION
         // -----------------------------------------------------------------------------------------
         // Load the CascadeClassifier class to detect objects.
-        faceDetector = TrainFaces.loadClassifierCascade(RegFaces.this, R.raw.frontalface);
+        faceDetector = TrainFaces.loadClassifierCascade(this, R.raw.frontalface);
         // Detect the face.
         faceDetector.detectMultiScale(greyMat, faces, 1.25f, 3, 1,
                 new Size(absoluteFaceSize, absoluteFaceSize),
@@ -180,29 +184,30 @@ public class RegFaces extends AppCompatActivity {
         recognizeMultipleExternalStorage(faces.get(0), greyMat, tv);
     }
 
+
     /***********************************************************************************************
      *
      *
-     *                                  INTERNAL STORAGE
+     *                                       EXTERNAL STORAGE
      *
      *
      **********************************************************************************************/
     /**
      * Predict using one model only but can predict faces of different people.
      * Recognize multiple faces using only one model.
-     * prediction = 0 Angelina Jolie
-     * prediction = 1 Tom Cruise
+     * prediction = 0
+     * prediction = 1
      * IMPORTANT!
      * @param dadosFace
      * @param greyMat
      */
-    void recognizeMultipleInternalStorage(Rect dadosFace, Mat greyMat, TextView tv) {
+    void recognizeMultipleExternalStorage(Rect dadosFace, Mat greyMat, TextView tv) {
         int personId = 0;
         String personName = "";
 
         // Find the correct root path where our trained face model is stored.
-        File internalPhotosFolder = new File(getFilesDir(), INTERNAL_TRAIN_FOLDER);
-        File f = new File(internalPhotosFolder, TrainFaces.EIGEN_FACES_CLASSIFIER);
+        File photosFolder = new File(Environment.getExternalStorageDirectory(), EXTERNAL_TRAIN_FOLDER);
+        File f = new File(photosFolder, TrainFaces.EIGEN_FACES_CLASSIFIER);
 
         // Loads a persisted model and state from a given XML or YAML file.
         faceRecognizer.read(f.getAbsolutePath());
@@ -219,14 +224,15 @@ public class RegFaces extends AppCompatActivity {
         int acceptanceLevel = (int) reliability.get(0);
 
         if (prediction == 0) {
-            personName = "Angelina Jolie";
+            personName = "Person 1";
             personId = 1;
         }
 
         if (prediction == 1) {
-            personName = "Tom Cruise";
+            personName = "Person 2";
             personId = 2;
         }
+
 
         // -----------------------------------------------------------------------------------------
         //                         DISPLAY THE FACE RECOGNITION PREDICTION
@@ -257,29 +263,30 @@ public class RegFaces extends AppCompatActivity {
                             "\nPerson ID: " + personId +
                             "\nPrediction Id: " + prediction
             );
-
-            if (personId >= 1) {
-                DatabaseAccess databaseAccess = DatabaseAccess.getInstance(getApplicationContext());
-                databaseAccess.open();
-
-                String info = databaseAccess.getInformation(personId);
-                result_information.setText(info);
-
-                databaseAccess.close();
-            }
         }
     }
 
 
+
+
+
+
+
+
+    //----------------------------------------------------------------------------------------------
+    //
+    //  Not use for the application right now, but for a reference later on if continued researching
+    //  on this application.
+    //
+    //----------------------------------------------------------------------------------------------
+
     /***********************************************************************************************
      *
      *
-     *                                       EXTERNAL STORAGE
+     *                                  INTERNAL STORAGE
      *
      *
      **********************************************************************************************/
-
-
     /**
      * Predict using one model only but can predict faces of different people.
      * Recognize multiple faces using only one model.
@@ -289,13 +296,13 @@ public class RegFaces extends AppCompatActivity {
      * @param dadosFace
      * @param greyMat
      */
-    void recognizeMultipleExternalStorage(Rect dadosFace, Mat greyMat, TextView tv) {
+    void recognizeMultipleInternalStorage(Rect dadosFace, Mat greyMat, TextView tv) {
         int personId = 0;
         String personName = "";
 
         // Find the correct root path where our trained face model is stored.
-        File photosFolder = new File(Environment.getExternalStorageDirectory(), EXTERNAL_TRAIN_FOLDER);
-        File f = new File(photosFolder, TrainFaces.EIGEN_FACES_CLASSIFIER);
+        File internalPhotosFolder = new File(getFilesDir(), INTERNAL_TRAIN_FOLDER);
+        File f = new File(internalPhotosFolder, TrainFaces.EIGEN_FACES_CLASSIFIER);
 
         // Loads a persisted model and state from a given XML or YAML file.
         faceRecognizer.read(f.getAbsolutePath());

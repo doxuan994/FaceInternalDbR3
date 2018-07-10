@@ -39,8 +39,9 @@ public class MainActivity extends AppCompatActivity {
 
         mPermissionReady = cameraPermission == PackageManager.PERMISSION_GRANTED && storagePermission == PackageManager.PERMISSION_GRANTED;
 
-        if (!mPermissionReady)
+        if (!mPermissionReady) {
             requirePermissions();
+        }
     }
 
     private void requirePermissions() {

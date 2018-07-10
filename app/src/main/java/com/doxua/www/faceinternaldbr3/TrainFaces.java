@@ -51,7 +51,7 @@ public class TrainFaces extends AppCompatActivity {
     public static final String FILE_NAME_PATTERN = "person.%d.%d.jpg";
     public static final int IMG_SIZE = 160;
     public static final int PICK_IMAGE = 100;
-    public static final int PHOTOS_TRAIN_QTY = 10;
+    public static final int PHOTOS_TRAIN_QTY = 100;
 
     // Views.
     private ImageView imageView;
@@ -67,7 +67,11 @@ public class TrainFaces extends AppCompatActivity {
     private int personIdNumber = 0;
 
     // External storage.
-    public static final String EXTERNAL_TRAIN_FOLDER = "saved_images";
+    //----------------------------------------------------------------------------------------------
+    //     Restriction may be applied to use this faculty model for Face Detection.
+    //----------------------------------------------------------------------------------------------
+    // public static final String EXTERNAL_TRAIN_FOLDER = "train_faculty_folder";
+    public static final String EXTERNAL_TRAIN_FOLDER = "train_students_folder";
 
     // Internal storage.
     public static final String INTERNAL_TRAIN_FOLDER = "train_folder";
@@ -154,16 +158,17 @@ public class TrainFaces extends AppCompatActivity {
         }
     }
 
-    /**
+    /***********************************************************************************************
+     *                              DETECT AND DISPLAY FACES
      * Detect faces.
      * Draw a green rectangle around the first detected face.
-     * Store color detected faces.
-     * Display number of detected faces.
+     * Display detected faces and number of detected faces.
+     *
      * Notice: Introducing JavaCV frame converters.
      * http://bytedeco.org/news/2015/04/04/javacv-frame-converters/
      * @param bitmap
      * @param facesValue
-     */
+     **********************************************************************************************/
     void detectAndDisplay(Bitmap bitmap, TextView facesValue) {
         // Create a new gray Mat.
         Mat greyMat = new Mat();
@@ -229,6 +234,195 @@ public class TrainFaces extends AppCompatActivity {
         }
     }
 
+    /***********************************************************************************************
+     *
+     *
+     *                                       EXTERNAL STORAGE
+     *
+     *
+     **********************************************************************************************/
+    /***********************************************************************************************
+     *              STORE IMAGES TO EXTERNAL STORAGE THAT ARE CONVERTED TO GRAYSCALE
+     * The grayscale format is needed to OpenCV to do the Face Recognition later on.
+     * @param bitmap The image to be stored.
+     * @param personId
+     **********************************************************************************************/
+    void storeImageGrayscaleExternalStorage(Bitmap bitmap, int personId, int photoId) throws Exception {
+        // Create a new folder external for our train images.
+        File myTrainDir = new File(Environment.getExternalStorageDirectory(), EXTERNAL_TRAIN_FOLDER);
+        if (myTrainDir.exists() && !myTrainDir.isDirectory()) {
+            myTrainDir.delete();
+        }
+        if (!myTrainDir.exists()) {
+            myTrainDir.mkdirs();
+        }
+
+        // Create a new gray Mat.
+        Mat greyMat = new Mat();
+        // JavaCV frame converters.
+        AndroidFrameConverter converterToBitmap = new AndroidFrameConverter();
+        OpenCVFrameConverter.ToMat converterToMat = new OpenCVFrameConverter.ToMat();
+
+        // -----------------------------------------------------------------------------------------
+        //                              CONVERT TO MAT FOR PROCESSING
+        // -----------------------------------------------------------------------------------------
+        // Convert to Bitmap.
+        Frame frame = converterToBitmap.convert(bitmap);
+        // Convert to Mat.
+        Mat colorMat = converterToMat.convert(frame);
+
+        // Convert to Gray scale.
+        cvtColor(colorMat, greyMat, CV_BGR2GRAY);
+        // Vector of rectangles where each rectangle contains the detected object.
+        RectVector faces = new RectVector();
+
+        // Load the CascadeClassifier class to detect objects.
+        faceDetector = loadClassifierCascade(this, R.raw.frontalface);
+        // Detect the face.
+        faceDetector.detectMultiScale(greyMat, faces, 1.1, 1, 0, new Size(150,150), new Size(500,500));
+
+        // Count number of faces and display in text view.
+        int numFaces = (int) faces.size();
+
+        // Save all the detected faces.
+        for (int i = 0; i < numFaces; i++) {
+            Rect rectFace = faces.get(i);
+            rectangle(colorMat, rectFace, new Scalar(0,0,255,0));
+            Mat capturedFace = new Mat(greyMat, rectFace);
+            resize(capturedFace, capturedFace, new Size(IMG_SIZE,IMG_SIZE));
+
+            // Save an image of limit of images not reach.
+            if (personIdNumber < PHOTOS_TRAIN_QTY) {
+                File f = new File(myTrainDir, String.format(FILE_NAME_PATTERN, personId, photoId));
+                f.createNewFile();
+                imwrite(f.getAbsolutePath(), capturedFace);
+                personIdNumber++;
+            }
+        }
+    }
+
+    /***********************************************************************************************
+     *                              CREATED A MODEL FROM FORMATTED FACES
+     * Train our one model with multiple different people faces.
+     * @return
+     * @throws Exception
+     **********************************************************************************************/
+    boolean trainExternalStorageMultipleModels() throws Exception {
+        // Find the correct root path where our trained face model will be stored.
+        File photosFolder = new File(Environment.getExternalStorageDirectory(), EXTERNAL_TRAIN_FOLDER);
+        FilenameFilter imageFilter = new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(".jpg") || name.endsWith(".gif") || name.endsWith(".png");
+            }
+        };
+
+        // Create a list of photo paths.
+        File[] files = photosFolder.listFiles(imageFilter);
+
+        MatVector photos = new MatVector(files.length);
+        Mat labels = new Mat(files.length, 1, CV_32SC1);
+        IntBuffer rotulosBuffer = labels.createBuffer();
+
+        int counter = 0;
+        for (File image: files) {
+            Mat photo = imread(image.getAbsolutePath(), CV_LOAD_IMAGE_GRAYSCALE);
+            int classe = Integer.parseInt(image.getName().split("\\.")[1]);
+            resize(photo, photo, new Size(IMG_SIZE, IMG_SIZE));
+            photos.put(counter, photo);
+            rotulosBuffer.put(counter, classe);
+            counter++;
+        }
+
+        // Save our model as YAML file to the folder created on the top of the method.
+        if (files.length > 0) {
+            FaceRecognizer eigenfaces = EigenFaceRecognizer.create();
+            eigenfaces.train(photos, labels);
+            File f = new File(photosFolder, EIGEN_FACES_CLASSIFIER);
+            f.createNewFile();
+            eigenfaces.save(f.getAbsolutePath());
+        }
+        return true;
+    }
+
+
+
+
+    /***********************************************************************************************
+     *
+     *
+     *                                      HELPER METHODS
+     *
+     *
+     **********************************************************************************************/
+    /**
+     * Load the CascadeClassifier for Face Detection.
+     * @param context
+     * @param resId
+     * @return
+     */
+    public static CascadeClassifier loadClassifierCascade(Context context, int resId) {
+        FileOutputStream fos = null;
+        InputStream inputStream;
+
+        inputStream = context.getResources().openRawResource(resId);
+        File xmlDir = context.getDir("xml", Context.MODE_PRIVATE);
+        File cascadeFile = new File(xmlDir, "temp.xml");
+        try {
+            fos = new FileOutputStream(cascadeFile);
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                fos.write(buffer, 0, bytesRead);
+            }
+        } catch (IOException e) {
+            Log.d(TAG, "Can\'t load the cascade file");
+            e.printStackTrace();
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        CascadeClassifier detector = new CascadeClassifier(cascadeFile.getAbsolutePath());
+        if (detector.isNull()) {
+            Log.e(TAG, "Failed to load cascade classifier");
+            detector = null;
+        } else {
+            Log.i(TAG, "Loaded cascade classifier from " + cascadeFile.getAbsolutePath());
+        }
+        // Delete the temporary directory.
+        cascadeFile.delete();
+        return detector;
+    }
+
+
+
+
+
+
+
+
+
+
+
+    //----------------------------------------------------------------------------------------------
+    //
+    //  Not use for the application right now, but for a reference later on if continued researching
+    //  on this application.
+    //
+    //----------------------------------------------------------------------------------------------
 
     /***********************************************************************************************
      *
@@ -343,178 +537,5 @@ public class TrainFaces extends AppCompatActivity {
             eigenfaces.save(f.getAbsolutePath());
         }
         return true;
-    }
-
-    /***********************************************************************************************
-     *
-     *
-     *                                       EXTERNAL STORAGE
-     *
-     *
-     **********************************************************************************************/
-    /**
-     * Save the grayscale format.
-     * @param bitmap The image to be stored.
-     * @param personId
-     */
-    void storeImageGrayscaleExternalStorage(Bitmap bitmap, int personId, int photoId) throws Exception {
-        // Create a new folder external for our train images.
-        File myTrainDir = new File(Environment.getExternalStorageDirectory(), EXTERNAL_TRAIN_FOLDER);
-        if (myTrainDir.exists() && !myTrainDir.isDirectory()) {
-            myTrainDir.delete();
-        }
-        if (!myTrainDir.exists()) {
-            myTrainDir.mkdirs();
-        }
-
-        // Create a new gray Mat.
-        Mat greyMat = new Mat();
-        // JavaCV frame converters.
-        AndroidFrameConverter converterToBitmap = new AndroidFrameConverter();
-        OpenCVFrameConverter.ToMat converterToMat = new OpenCVFrameConverter.ToMat();
-
-        // -----------------------------------------------------------------------------------------
-        //                              CONVERT TO MAT FOR PROCESSING
-        // -----------------------------------------------------------------------------------------
-        // Convert to Bitmap.
-        Frame frame = converterToBitmap.convert(bitmap);
-        // Convert to Mat.
-        Mat colorMat = converterToMat.convert(frame);
-
-        // Convert to Gray scale.
-        cvtColor(colorMat, greyMat, CV_BGR2GRAY);
-        // Vector of rectangles where each rectangle contains the detected object.
-        RectVector faces = new RectVector();
-
-        // Load the CascadeClassifier class to detect objects.
-        faceDetector = loadClassifierCascade(this, R.raw.frontalface);
-        // Detect the face.
-        faceDetector.detectMultiScale(greyMat, faces, 1.1, 1, 0, new Size(150,150), new Size(500,500));
-
-        // Count number of faces and display in text view.
-        int numFaces = (int) faces.size();
-
-        // Save all the detected faces.
-        for (int i = 0; i < numFaces; i++) {
-            Rect rectFace = faces.get(i);
-            rectangle(colorMat, rectFace, new Scalar(0,0,255,0));
-            Mat capturedFace = new Mat(greyMat, rectFace);
-            resize(capturedFace, capturedFace, new Size(IMG_SIZE,IMG_SIZE));
-
-            // Save an image of limit of images not reach.
-            if (photoIdNumber < PHOTOS_TRAIN_QTY) {
-                File f = new File(myTrainDir, String.format(FILE_NAME_PATTERN, personId, photoId));
-                f.createNewFile();
-                imwrite(f.getAbsolutePath(), capturedFace);
-                photoIdNumber++;
-            }
-
-            if (photoIdNumber == PHOTOS_TRAIN_QTY) {
-                photoIdNumber = 0;
-                personIdNumber = 1;
-            }
-        }
-    }
-
-    /**
-     * Train our one model with multiple different people faces.
-     * @return
-     * @throws Exception
-     */
-    boolean trainExternalStorageMultipleModels() throws Exception {
-        // Find the correct root path where our trained face model will be stored.
-        File photosFolder = new File(Environment.getExternalStorageDirectory(), EXTERNAL_TRAIN_FOLDER);
-        FilenameFilter imageFilter = new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith(".jpg") || name.endsWith(".gif") || name.endsWith(".png");
-            }
-        };
-
-        // Create a list of photo paths.
-        File[] files = photosFolder.listFiles(imageFilter);
-
-        MatVector photos = new MatVector(files.length);
-        Mat labels = new Mat(files.length, 1, CV_32SC1);
-        IntBuffer rotulosBuffer = labels.createBuffer();
-
-        int counter = 0;
-        for (File image: files) {
-            Mat photo = imread(image.getAbsolutePath(), CV_LOAD_IMAGE_GRAYSCALE);
-            int classe = Integer.parseInt(image.getName().split("\\.")[1]);
-            resize(photo, photo, new Size(IMG_SIZE, IMG_SIZE));
-            photos.put(counter, photo);
-            rotulosBuffer.put(counter, classe);
-            counter++;
-        }
-
-        // Save our model as YAML file to the folder created on the top of the method.
-        if (files.length > 0) {
-            FaceRecognizer eigenfaces = EigenFaceRecognizer.create();
-            eigenfaces.train(photos, labels);
-            File f = new File(photosFolder, EIGEN_FACES_CLASSIFIER);
-            f.createNewFile();
-            eigenfaces.save(f.getAbsolutePath());
-        }
-        return true;
-    }
-
-    /***********************************************************************************************
-     *
-     *
-     *                                      HELPER METHODS
-     *
-     *
-     **********************************************************************************************/
-    /**
-     * Load the CascadeClassifier for Face Detection.
-     * @param context
-     * @param resId
-     * @return
-     */
-    public static CascadeClassifier loadClassifierCascade(Context context, int resId) {
-        FileOutputStream fos = null;
-        InputStream inputStream;
-
-        inputStream = context.getResources().openRawResource(resId);
-        File xmlDir = context.getDir("xml", Context.MODE_PRIVATE);
-        File cascadeFile = new File(xmlDir, "temp.xml");
-        try {
-            fos = new FileOutputStream(cascadeFile);
-            byte[] buffer = new byte[4096];
-            int bytesRead;
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                fos.write(buffer, 0, bytesRead);
-            }
-        } catch (IOException e) {
-            Log.d(TAG, "Can\'t load the cascade file");
-            e.printStackTrace();
-        } finally {
-            if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (fos != null) {
-                try {
-                    fos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        CascadeClassifier detector = new CascadeClassifier(cascadeFile.getAbsolutePath());
-        if (detector.isNull()) {
-            Log.e(TAG, "Failed to load cascade classifier");
-            detector = null;
-        } else {
-            Log.i(TAG, "Loaded cascade classifier from " + cascadeFile.getAbsolutePath());
-        }
-        // Delete the temporary directory.
-        cascadeFile.delete();
-        return detector;
     }
 }
