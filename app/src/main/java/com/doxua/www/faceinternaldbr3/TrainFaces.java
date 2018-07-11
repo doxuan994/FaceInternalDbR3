@@ -47,7 +47,7 @@ import static org.opencv.core.Core.LINE_8;
 
 public class TrainFaces extends AppCompatActivity {
     public static final String TAG = "TrainFaces";
-    public static final String EIGEN_FACES_CLASSIFIER = "eigenFacesClassifier.yml";
+    public static final String EIGEN_FACES_CLASSIFIER = "bigeigenfacesclassifier.yml";
     public static final String FILE_NAME_PATTERN = "person.%d.%d.jpg";
     public static final int IMG_SIZE = 160;
     public static final int PICK_IMAGE = 100;
