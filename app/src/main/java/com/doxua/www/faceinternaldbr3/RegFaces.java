@@ -39,8 +39,8 @@ import static org.opencv.core.Core.LINE_8;
 
 public class RegFaces extends AppCompatActivity {
     public static final String TAG = "RegFaces";
-    private static final int ACCEPT_LEVEL = 4000;
-    private static final int MIDDLE_ACCEPT_LEVEL = 5000;
+    private static final int ACCEPT_LEVEL = 2500;
+    private static final int MIDDLE_ACCEPT_LEVEL = 3000;
     private static final int PICK_IMAGE = 100;
     private static final int IMG_SIZE = 160;
 
