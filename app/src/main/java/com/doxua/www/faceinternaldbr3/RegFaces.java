@@ -60,7 +60,6 @@ public class RegFaces extends AppCompatActivity {
     //----------------------------------------------------------------------------------------------
     //     Restriction may be applied to use this faculty model for Face Recognition.
     //----------------------------------------------------------------------------------------------
-    // public static final String EXTERNAL_TRAIN_FOLDER = "train_faculty_folder";
     public static final String EXTERNAL_TRAIN_FOLDER = "my_train_folder";
 
     // Internal storage.

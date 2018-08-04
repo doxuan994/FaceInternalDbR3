@@ -70,7 +70,6 @@ public class TrainFaces extends AppCompatActivity {
     //----------------------------------------------------------------------------------------------
     //     Restriction may be applied to use this faculty model for Face Detection.
     //----------------------------------------------------------------------------------------------
-    // public static final String EXTERNAL_TRAIN_FOLDER = "train_faculty_folder";
     public static final String EXTERNAL_TRAIN_FOLDER = "my_train_folder";
 
     // Internal storage.
@@ -198,7 +197,6 @@ public class TrainFaces extends AppCompatActivity {
         faceDetector.detectMultiScale(greyMat, faces, 1.25f, 3, 1,
                 new Size(absoluteFaceSize, absoluteFaceSize),
                 new Size(4 * absoluteFaceSize, 4 * absoluteFaceSize));
-
 
         // Count number of faces and display in text view.
         int numFaces = (int) faces.size();
